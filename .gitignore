@@ -1,0 +1,14 @@
+# Created by .ignore support plugin (hsz.mobi)
+### Elm template
+# elm-package generated files
+elm-stuff
+# elm-repl generated files
+repl-temp-*
+### Example user template template
+### Example user template
+
+# IntelliJ project files
+.idea
+*.iml
+out
+gen
