@@ -62,7 +62,7 @@ update msg model =
                 case clickedBox of
                     Just box ->
                         if box.player == Nothing then
-                            { model | board = updateBoard model.board id model.turn }
+                            { turn = rotateTurn model.turn, board = updateBoard model.board id model.turn }
                         else
                             model
 
@@ -85,6 +85,16 @@ updateBoard currentBoard boxId player =
                                 box
                         )
             )
+
+
+rotateTurn : Player -> Player
+rotateTurn currentPlayer =
+    case currentPlayer of
+        X ->
+            O
+
+        O ->
+            X
 
 
 
