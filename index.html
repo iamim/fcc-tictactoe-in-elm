@@ -8581,30 +8581,112 @@ var _user$project$Main$boxClicked = F2(
 			return model;
 		}
 	});
+var _user$project$Main$resolveTree = function (model) {
+	var possibleMoves = A2(
+		_elm_lang$core$List$map,
+		function (_) {
+			return _.id;
+		},
+		A2(
+			_elm_lang$core$List$filter,
+			function (box) {
+				return _elm_lang$core$Native_Utils.eq(box.player, _elm_lang$core$Maybe$Nothing);
+			},
+			_elm_lang$core$List$concat(model.board)));
+	var possibleModels = A2(
+		_elm_lang$core$List$map,
+		_user$project$Main$updateAppState,
+		A2(
+			_elm_lang$core$List$map,
+			_user$project$Main$boxClicked(model),
+			possibleMoves));
+	var branchResults = A2(
+		_elm_lang$core$List$map,
+		function (model) {
+			return _elm_lang$core$Native_Utils.eq(model.appState, _user$project$Main$NewGame) ? _user$project$Main$resolveTree(model) : model.appState;
+		},
+		possibleModels);
+	var currentPlayer = model.turn;
+	var desiredState = _elm_lang$core$Native_Utils.eq(currentPlayer, _user$project$Main$User) ? _user$project$Main$UserWin : _user$project$Main$CpuWin;
+	var undesiredState = _elm_lang$core$Native_Utils.eq(currentPlayer, _user$project$Main$User) ? _user$project$Main$CpuWin : _user$project$Main$UserWin;
+	return A2(_elm_lang$core$List$member, desiredState, branchResults) ? desiredState : (A2(_elm_lang$core$List$member, _user$project$Main$Draw, branchResults) ? _user$project$Main$Draw : undesiredState);
+};
+var _user$project$Main$minimax = function (model) {
+	var getModelFromNextMove = function (boxId) {
+		return _user$project$Main$updateAppState(
+			A2(_user$project$Main$boxClicked, model, boxId));
+	};
+	var possibleMoves = A2(
+		_elm_lang$core$List$map,
+		function (_) {
+			return _.id;
+		},
+		A2(
+			_elm_lang$core$List$filter,
+			function (box) {
+				return _elm_lang$core$Native_Utils.eq(box.player, _elm_lang$core$Maybe$Nothing);
+			},
+			_elm_lang$core$List$concat(model.board)));
+	var resolvedMoves = A2(
+		_elm_lang$core$List$map,
+		function (idx) {
+			return {
+				ctor: '_Tuple2',
+				_0: idx,
+				_1: _user$project$Main$resolveTree(
+					getModelFromNextMove(idx))
+			};
+		},
+		possibleMoves);
+	var drawMoves = A2(
+		_elm_lang$core$List$filter,
+		function (_p10) {
+			var _p11 = _p10;
+			return _elm_lang$core$Native_Utils.eq(_p11._1, _user$project$Main$Draw);
+		},
+		resolvedMoves);
+	var currentPlayer = model.turn;
+	var desiredState = _elm_lang$core$Native_Utils.eq(currentPlayer, _user$project$Main$User) ? _user$project$Main$UserWin : _user$project$Main$CpuWin;
+	var winningMoves = A2(
+		_elm_lang$core$List$filter,
+		function (_p12) {
+			var _p13 = _p12;
+			return _elm_lang$core$Native_Utils.eq(_p13._1, desiredState);
+		},
+		resolvedMoves);
+	var undesiredState = _elm_lang$core$Native_Utils.eq(currentPlayer, _user$project$Main$User) ? _user$project$Main$CpuWin : _user$project$Main$UserWin;
+	return (!_elm_lang$core$Native_Utils.eq(
+		_elm_lang$core$List$length(winningMoves),
+		0)) ? _elm_lang$core$Tuple$first(
+		A2(
+			_elm_lang$core$Maybe$withDefault,
+			{ctor: '_Tuple2', _0: 1, _1: _user$project$Main$NewGame},
+			_elm_lang$core$List$head(winningMoves))) : ((!_elm_lang$core$Native_Utils.eq(
+		_elm_lang$core$List$length(drawMoves),
+		0)) ? _elm_lang$core$Tuple$first(
+		A2(
+			_elm_lang$core$Maybe$withDefault,
+			{ctor: '_Tuple2', _0: 1, _1: _user$project$Main$NewGame},
+			_elm_lang$core$List$head(drawMoves))) : A2(
+		_elm_lang$core$Native_Utils.crash(
+			'Main',
+			{
+				start: {line: 337, column: 13},
+				end: {line: 337, column: 24}
+			}),
+		'unexpected state',
+		-1));
+};
 var _user$project$Main$randomCpuTurn = function (model) {
+	var minimaxId = _user$project$Main$minimax(model);
 	var board = model.board;
-	var anyIdx = A2(
-		_elm_lang$core$Maybe$withDefault,
-		9,
-		_elm_lang$core$List$head(
-			A2(
-				_elm_lang$core$List$map,
-				function (_) {
-					return _.id;
-				},
-				A2(
-					_elm_lang$core$List$filter,
-					function (box) {
-						return _elm_lang$core$Native_Utils.eq(box.player, _elm_lang$core$Maybe$Nothing);
-					},
-					_elm_lang$core$List$concat(board)))));
-	return A2(_user$project$Main$boxClicked, model, anyIdx);
+	return A2(_user$project$Main$boxClicked, model, minimaxId);
 };
 var _user$project$Main$update = F2(
 	function (msg, model) {
 		var newModel = function () {
-			var _p10 = msg;
-			return _elm_lang$core$Native_Utils.eq(model.turn, _user$project$Main$User) ? A2(_user$project$Main$boxClicked, model, _p10._0) : model;
+			var _p14 = msg;
+			return _elm_lang$core$Native_Utils.eq(model.turn, _user$project$Main$User) ? A2(_user$project$Main$boxClicked, model, _p14._0) : model;
 		}();
 		return _user$project$Main$updateAppState(
 			_user$project$Main$randomCpuTurn(

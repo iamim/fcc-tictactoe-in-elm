@@ -4,6 +4,7 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick)
 import Array
+import Tuple
 
 
 main =
@@ -275,15 +276,118 @@ randomCpuTurn model =
         board =
             model.board
 
-        anyIdx =
-            board
+        minimaxId =
+            minimax model
+    in
+        boxClicked model minimaxId
+
+
+minimax : Model -> Int
+minimax model =
+    let
+        currentPlayer : Player
+        currentPlayer =
+            model.turn
+
+        desiredState : AppState
+        desiredState =
+            if currentPlayer == User then
+                UserWin
+            else
+                CpuWin
+
+        undesiredState : AppState
+        undesiredState =
+            if currentPlayer == User then
+                CpuWin
+            else
+                UserWin
+
+        possibleMoves : List Int
+        possibleMoves =
+            model.board
                 |> List.concat
                 |> List.filter (\box -> box.player == Nothing)
-                |> List.map (.id)
-                |> List.head
-                |> Maybe.withDefault 9
+                |> List.map .id
+
+        getModelFromNextMove : Int -> Model
+        getModelFromNextMove boxId =
+            boxClicked model boxId |> updateAppState
+
+        resolvedMoves : List ( Int, AppState )
+        resolvedMoves =
+            possibleMoves
+                |> List.map (\idx -> ( idx, resolveTree (getModelFromNextMove idx) ))
+
+        winningMoves : List ( Int, AppState )
+        winningMoves =
+            resolvedMoves
+                |> List.filter (\( _, appState ) -> appState == desiredState)
+
+        drawMoves : List ( Int, AppState )
+        drawMoves =
+            resolvedMoves
+                |> List.filter (\( _, appState ) -> appState == Draw)
     in
-        boxClicked model anyIdx
+        if List.length winningMoves /= 0 then
+            List.head winningMoves |> Maybe.withDefault (( 1, NewGame )) |> Tuple.first
+        else if List.length drawMoves /= 0 then
+            List.head drawMoves |> Maybe.withDefault (( 1, NewGame )) |> Tuple.first
+        else
+            Debug.crash "unexpected state" -1
+
+
+resolveTree : Model -> AppState
+resolveTree model =
+    let
+        currentPlayer : Player
+        currentPlayer =
+            model.turn
+
+        desiredState : AppState
+        desiredState =
+            if currentPlayer == User then
+                UserWin
+            else
+                CpuWin
+
+        undesiredState : AppState
+        undesiredState =
+            if currentPlayer == User then
+                CpuWin
+            else
+                UserWin
+
+        possibleMoves : List Int
+        possibleMoves =
+            model.board
+                |> List.concat
+                |> List.filter (\box -> box.player == Nothing)
+                |> List.map .id
+
+        possibleModels : List Model
+        possibleModels =
+            possibleMoves
+                |> List.map (boxClicked model)
+                |> List.map updateAppState
+
+        branchResults : List AppState
+        branchResults =
+            possibleModels
+                |> List.map
+                    (\model ->
+                        if model.appState == NewGame then
+                            resolveTree model
+                        else
+                            model.appState
+                    )
+    in
+        if List.member desiredState branchResults then
+            desiredState
+        else if List.member Draw branchResults then
+            Draw
+        else
+            undesiredState
 
 
 
