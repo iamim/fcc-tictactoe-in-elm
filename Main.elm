@@ -28,13 +28,13 @@ type alias Model =
 type AppState
     = Draw
     | NewGame
-    | XWin
-    | OWin
+    | UserWin
+    | CpuWin
 
 
 type Player
-    = X
-    | O
+    = User
+    | CPU
 
 
 type alias Box =
@@ -46,7 +46,7 @@ type alias Box =
 model : Model
 model =
     Model NewGame
-        X
+        User
         [ [ Box 1 Nothing, Box 2 Nothing, Box 3 Nothing ]
         , [ Box 4 Nothing, Box 5 Nothing, Box 6 Nothing ]
         , [ Box 7 Nothing, Box 8 Nothing, Box 9 Nothing ]
@@ -67,25 +67,36 @@ update msg model =
         newModel =
             case msg of
                 Click id ->
-                    let
-                        clickedBox =
-                            List.head <| List.filter (\box -> box.id == id) (List.concat model.board)
-                    in
-                        case clickedBox of
-                            Just box ->
-                                if box.player == Nothing then
-                                    { model
-                                        | turn = rotateTurn model.turn
-                                        , board = updateBoard model.board id model.turn
-                                    }
-                                else
-                                    model
-
-                            Nothing ->
-                                -- need error handling here???
-                                model
+                    if model.turn == User then
+                        boxClicked model id
+                    else
+                        model
     in
-        newModel |> updateAppState
+        newModel |> updateAppState |> randomCpuTurn |> updateAppState
+
+
+boxClicked : Model -> Int -> Model
+boxClicked model id =
+    let
+        clickedBox =
+            List.head <| List.filter (\box -> box.id == id) (List.concat model.board)
+
+        gameIsNotOver =
+            model.appState == NewGame
+    in
+        case clickedBox of
+            Just box ->
+                if box.player == Nothing && gameIsNotOver then
+                    { model
+                        | turn = rotateTurn model.turn
+                        , board = updateBoard model.board id model.turn
+                    }
+                else
+                    model
+
+            Nothing ->
+                -- need error handling here???
+                model
 
 
 updateBoard : List (List Box) -> Int -> Player -> List (List Box)
@@ -104,11 +115,11 @@ updateBoard currentBoard boxId player =
 rotateTurn : Player -> Player
 rotateTurn currentPlayer =
     case currentPlayer of
-        X ->
-            O
+        User ->
+            CPU
 
-        O ->
-            X
+        CPU ->
+            User
 
 
 updateAppState : Model -> Model
@@ -124,10 +135,10 @@ updateAppState model =
             List.map ((|>) board) gameWinChecks
 
         newAppState =
-            if List.member (Just XWin) gameResults then
-                XWin
-            else if List.member (Just OWin) gameResults then
-                OWin
+            if List.member (Just UserWin) gameResults then
+                UserWin
+            else if List.member (Just CpuWin) gameResults then
+                CpuWin
             else if List.member (Just Draw) gameResults then
                 Draw
             else
@@ -139,10 +150,10 @@ updateAppState model =
 boxValue : Box -> Int
 boxValue box =
     case box.player of
-        Just X ->
+        Just User ->
             1
 
-        Just O ->
+        Just CPU ->
             -1
 
         Nothing ->
@@ -185,9 +196,9 @@ checkDiagonalWin board =
                 |> List.map List.sum
     in
         if List.member 3 diagonalCountList then
-            Just XWin
+            Just UserWin
         else if List.member -3 diagonalCountList then
-            Just OWin
+            Just CpuWin
         else
             Nothing
 
@@ -203,9 +214,9 @@ checkRowWin board =
                 |> List.map List.sum
     in
         if List.member 3 rowCountList then
-            Just XWin
+            Just UserWin
         else if List.member -3 rowCountList then
-            Just OWin
+            Just CpuWin
         else
             Nothing
 
@@ -225,15 +236,16 @@ checkColumnWin board =
         columnCountList =
             List.map (getColumn) [ 0, 1, 2 ]
                 |> List.map
-                    (List.map (Maybe.map boxValue))
-                |> List.map
-                    (List.map (Maybe.withDefault 0))
-                |> List.map List.sum
+                    (List.sum << (List.map (Maybe.map boxValue >> Maybe.withDefault 0)))
+
+        --                |> List.map
+        --                    (List.map (Maybe.withDefault 0))
+        --                |> List.map List.sum
     in
         if List.member 3 columnCountList then
-            Just XWin
+            Just UserWin
         else if List.member -3 columnCountList then
-            Just OWin
+            Just CpuWin
         else
             Nothing
 
@@ -256,6 +268,24 @@ checkDraw board =
                 Nothing
 
 
+randomCpuTurn : Model -> Model
+randomCpuTurn model =
+    let
+        board : List (List Box)
+        board =
+            model.board
+
+        anyIdx =
+            board
+                |> List.concat
+                |> List.filter (\box -> box.player == Nothing)
+                |> List.map (.id)
+                |> List.head
+                |> Maybe.withDefault 9
+    in
+        boxClicked model anyIdx
+
+
 
 -- VIEW
 
@@ -271,10 +301,10 @@ view model =
 gameStateDiv : Model -> Html Msg
 gameStateDiv model =
     case model.appState of
-        XWin ->
+        UserWin ->
             div [] [ text "X win!" ]
 
-        OWin ->
+        CpuWin ->
             div [] [ text "O win!" ]
 
         Draw ->
@@ -302,10 +332,10 @@ boardBox box =
 playerToText : Maybe Player -> String
 playerToText player =
     case player of
-        Just X ->
+        Just User ->
             "X"
 
-        Just O ->
+        Just CPU ->
             "O"
 
         Nothing ->
