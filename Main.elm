@@ -9,7 +9,7 @@ import Tuple
 
 main =
     Html.beginnerProgram
-        { model = model
+        { model = initModel
         , view = view
         , update = update
         }
@@ -29,8 +29,7 @@ type alias Model =
 type AppState
     = Draw
     | NewGame
-    | UserWin
-    | CpuWin
+    | Winner Player
 
 
 type Player
@@ -44,12 +43,22 @@ type alias Box =
     }
 
 
-model : Model
-model =
+initModel : Model
+initModel =
     Model NewGame
         User
         [ [ Box 1 Nothing, Box 2 Nothing, Box 3 Nothing ]
         , [ Box 4 Nothing, Box 5 Nothing, Box 6 Nothing ]
+        , [ Box 7 Nothing, Box 8 Nothing, Box 9 Nothing ]
+        ]
+
+
+cpuFirstInitModel : Model
+cpuFirstInitModel =
+    Model NewGame
+        User
+        [ [ Box 1 Nothing, Box 2 Nothing, Box 3 Nothing ]
+        , [ Box 4 Nothing, Box 5 (Just CPU), Box 6 Nothing ]
         , [ Box 7 Nothing, Box 8 Nothing, Box 9 Nothing ]
         ]
 
@@ -60,6 +69,8 @@ model =
 
 type Msg
     = Click Int
+    | RestartWithCpuFirst
+    | RestartWithUserFirst
 
 
 update : Msg -> Model -> Model
@@ -72,8 +83,14 @@ update msg model =
                         boxClicked model id
                     else
                         model
+
+                RestartWithCpuFirst ->
+                    cpuFirstInitModel
+
+                RestartWithUserFirst ->
+                    initModel
     in
-        newModel |> updateAppState |> randomCpuTurn |> updateAppState
+        newModel |> updateAppState |> cpuTurn |> updateAppState
 
 
 boxClicked : Model -> Int -> Model
@@ -90,7 +107,7 @@ boxClicked model id =
                 if box.player == Nothing && gameIsNotOver then
                     { model
                         | turn = rotateTurn model.turn
-                        , board = updateBoard model.board id model.turn
+                        , board = flipBoxById model.board id model.turn
                     }
                 else
                     model
@@ -100,8 +117,8 @@ boxClicked model id =
                 model
 
 
-updateBoard : List (List Box) -> Int -> Player -> List (List Box)
-updateBoard currentBoard boxId player =
+flipBoxById : List (List Box) -> Int -> Player -> List (List Box)
+flipBoxById currentBoard boxId player =
     let
         updateBox box =
             if box.id == boxId then
@@ -136,10 +153,10 @@ updateAppState model =
             List.map ((|>) board) gameWinChecks
 
         newAppState =
-            if List.member (Just UserWin) gameResults then
-                UserWin
-            else if List.member (Just CpuWin) gameResults then
-                CpuWin
+            if List.member (Just (Winner User)) gameResults then
+                Winner User
+            else if List.member (Just (Winner CPU)) gameResults then
+                Winner CPU
             else if List.member (Just Draw) gameResults then
                 Draw
             else
@@ -197,9 +214,9 @@ checkDiagonalWin board =
                 |> List.map List.sum
     in
         if List.member 3 diagonalCountList then
-            Just UserWin
+            Just (Winner User)
         else if List.member -3 diagonalCountList then
-            Just CpuWin
+            Just (Winner CPU)
         else
             Nothing
 
@@ -215,9 +232,9 @@ checkRowWin board =
                 |> List.map List.sum
     in
         if List.member 3 rowCountList then
-            Just UserWin
+            Just (Winner User)
         else if List.member -3 rowCountList then
-            Just CpuWin
+            Just (Winner CPU)
         else
             Nothing
 
@@ -238,15 +255,11 @@ checkColumnWin board =
             List.map (getColumn) [ 0, 1, 2 ]
                 |> List.map
                     (List.sum << (List.map (Maybe.map boxValue >> Maybe.withDefault 0)))
-
-        --                |> List.map
-        --                    (List.map (Maybe.withDefault 0))
-        --                |> List.map List.sum
     in
         if List.member 3 columnCountList then
-            Just UserWin
+            Just (Winner User)
         else if List.member -3 columnCountList then
-            Just CpuWin
+            Just (Winner CPU)
         else
             Nothing
 
@@ -269,40 +282,17 @@ checkDraw board =
                 Nothing
 
 
-randomCpuTurn : Model -> Model
-randomCpuTurn model =
-    let
-        board : List (List Box)
-        board =
-            model.board
-
-        minimaxId =
-            minimax model
-    in
-        boxClicked model minimaxId
+cpuTurn : Model -> Model
+cpuTurn model =
+    if model.appState == NewGame && model.turn == CPU then
+        boxClicked model (minimax model)
+    else
+        model
 
 
 minimax : Model -> Int
 minimax model =
     let
-        currentPlayer : Player
-        currentPlayer =
-            model.turn
-
-        desiredState : AppState
-        desiredState =
-            if currentPlayer == User then
-                UserWin
-            else
-                CpuWin
-
-        undesiredState : AppState
-        undesiredState =
-            if currentPlayer == User then
-                CpuWin
-            else
-                UserWin
-
         possibleMoves : List Int
         possibleMoves =
             model.board
@@ -322,12 +312,15 @@ minimax model =
         winningMoves : List ( Int, AppState )
         winningMoves =
             resolvedMoves
-                |> List.filter (\( _, appState ) -> appState == desiredState)
+                |> List.filter (\( _, appState ) -> appState == Winner model.turn)
 
         drawMoves : List ( Int, AppState )
         drawMoves =
             resolvedMoves
                 |> List.filter (\( _, appState ) -> appState == Draw)
+
+        _ =
+            Debug.log "resolvedMoves" resolvedMoves
     in
         if List.length winningMoves /= 0 then
             List.head winningMoves |> Maybe.withDefault (( 1, NewGame )) |> Tuple.first
@@ -344,19 +337,12 @@ resolveTree model =
         currentPlayer =
             model.turn
 
-        desiredState : AppState
-        desiredState =
+        otherPlayer : Player
+        otherPlayer =
             if currentPlayer == User then
-                UserWin
+                CPU
             else
-                CpuWin
-
-        undesiredState : AppState
-        undesiredState =
-            if currentPlayer == User then
-                CpuWin
-            else
-                UserWin
+                User
 
         possibleMoves : List Int
         possibleMoves =
@@ -382,12 +368,12 @@ resolveTree model =
                             model.appState
                     )
     in
-        if List.member desiredState branchResults then
-            desiredState
+        if List.member (Winner currentPlayer) branchResults then
+            Winner currentPlayer
         else if List.member Draw branchResults then
             Draw
         else
-            undesiredState
+            Winner otherPlayer
 
 
 
@@ -399,17 +385,15 @@ view model =
     div [ class "wrapper" ]
         [ gameStateDiv model
         , div [ class "board" ] (renderBoard model)
+        , renderGameControls
         ]
 
 
 gameStateDiv : Model -> Html Msg
 gameStateDiv model =
     case model.appState of
-        UserWin ->
-            div [] [ text "X win!" ]
-
-        CpuWin ->
-            div [] [ text "O win!" ]
+        Winner p ->
+            div [] [ text <| (playerToText (Just p)) ++ " wins!" ]
 
         Draw ->
             div [] [ text "Draw!" ]
@@ -431,6 +415,14 @@ boardRow boxList =
 boardBox : Box -> Html Msg
 boardBox box =
     button [ class "box", onClick (Click box.id) ] [ text (playerToText box.player) ]
+
+
+renderGameControls : Html Msg
+renderGameControls =
+    div [ class "controls" ]
+        [ button [ class "restart--cpu-first", onClick RestartWithCpuFirst ] [ text "Restart AI first" ]
+        , button [ class "restart--user-first", onClick RestartWithUserFirst ] [ text "Restart me first" ]
+        ]
 
 
 playerToText : Maybe Player -> String
