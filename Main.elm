@@ -383,9 +383,21 @@ resolveTree model =
 view : Model -> Html Msg
 view model =
     div [ class "wrapper" ]
-        [ gameStateDiv model
-        , div [ class "board" ] (renderBoard model)
+        [ renderHeader
         , renderGameControls
+        , div [ class "board" ] (renderBoard model)
+        , gameStateDiv model
+        , renderFooter
+        ]
+
+
+renderHeader : Html Msg
+renderHeader =
+    h1 [ class "header" ]
+        [ span [ class "header--tic-tac-toe" ] [ text "Tic Tac Toe " ]
+        , span [ class "header--pipe" ] [ text "|" ]
+        , span [ class "header--gt" ] [ text ">" ]
+        , span [ class "header--elm" ] [ text " Elm" ]
         ]
 
 
@@ -393,10 +405,10 @@ gameStateDiv : Model -> Html Msg
 gameStateDiv model =
     case model.appState of
         Winner p ->
-            div [] [ text <| (playerToText (Just p)) ++ " wins!" ]
+            div [ class "result" ] [ text <| (playerToText (Just p)) ++ " wins!" ]
 
         Draw ->
-            div [] [ text "Draw!" ]
+            div [ class "result" ] [ text "Draw!" ]
 
         _ ->
             text ""
@@ -404,24 +416,42 @@ gameStateDiv model =
 
 renderBoard : Model -> List (Html Msg)
 renderBoard model =
-    List.map boardRow model.board
-
-
-boardRow : List Box -> Html Msg
-boardRow boxList =
-    div [ class "row" ] (List.map boardBox boxList)
+    model.board
+        |> List.concat
+        |> List.map boardBox
 
 
 boardBox : Box -> Html Msg
 boardBox box =
-    button [ class "box", onClick (Click box.id) ] [ text (playerToText box.player) ]
+    let
+        classname =
+            case box.player of
+                Just User ->
+                    "box -user"
+
+                Just CPU ->
+                    "box -cpu"
+
+                _ ->
+                    "box"
+    in
+        div [ class classname, onClick (Click box.id) ] [ text (playerToText box.player) ]
 
 
 renderGameControls : Html Msg
 renderGameControls =
     div [ class "controls" ]
-        [ button [ class "restart--cpu-first", onClick RestartWithCpuFirst ] [ text "Restart AI first" ]
-        , button [ class "restart--user-first", onClick RestartWithUserFirst ] [ text "Restart me first" ]
+        [ button [ class "btn restart--cpu-first", onClick RestartWithCpuFirst ] [ text "Restart AI first" ]
+        , button [ class "btn restart--user-first", onClick RestartWithUserFirst ] [ text "Restart me first" ]
+        ]
+
+
+renderFooter : Html Msg
+renderFooter =
+    div [ class "footer" ]
+        [ text "A "
+        , a [ class "footer--fcc", target "_blank", href "https://www.freecodecamp.com/" ] [ text "freeCodeCamp" ]
+        , text " project by Ilya Murashov"
         ]
 
 

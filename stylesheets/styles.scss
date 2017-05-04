@@ -1,0 +1,159 @@
+@import "reset";
+@import "media-queries";
+@import url('https://fonts.googleapis.com/css?family=Share+Tech+Mono');
+
+$elm-dark: #5A6378;
+$elm-blue: #60B5CC;
+$elm-orange: #F0AD00;
+$elm-green: #7FD13B;
+
+.header {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 40px;
+  text-align: center;
+
+  transition: all 0.2s;
+
+  @include max-screen(600px) {
+    font-size: 20px;
+  }
+
+  &--tic-tac-toe {
+    color: $elm-dark;
+  }
+
+  &--pipe {
+    color: $elm-orange;
+  }
+
+  &--gt {
+    color: $elm-green;
+  }
+
+  &--elm {
+    color: $elm-blue;
+  }
+}
+
+.board {
+  width: 600px;
+  height: 600px;
+  margin: auto;
+
+  transition: all 0.2s;
+
+  @include max-screen(600px) {
+    width: 300px;
+    height: 300px;
+  }
+}
+
+.box {
+  display: inline-block;
+  vertical-align: top;
+  line-height: 180px;
+  text-align: center;
+  margin: 10px;
+  background: $elm-dark;
+  width: 180px;
+  height: 180px;
+  font-size: 0.7 * 180px;
+  font-family: sans-serif;
+  user-select: none;
+  cursor: pointer;
+  box-shadow: 3px 3px 5px 1px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s;
+
+  @include max-screen(600px) {
+    width: 90px;
+    height: 90px;
+    line-height: 90px;
+    margin: 5px;
+    font-size: 0.7 * 90px;
+    box-shadow: 2px 2px 3px 1px rgba(0, 0, 0, 0.3);
+  }
+
+  &.-user {
+    color: $elm-green;
+  }
+
+  &.-cpu {
+    color: $elm-orange;
+  }
+
+  &:hover {
+    width: 186px;
+    height: 186px;
+    margin: 7px;
+    font-size: (186/180 * 0.7) * 180px;
+    box-shadow: 5px 5px 7px 1px rgba(0, 0, 0, 0.2);
+
+    @include max-screen(600px) {
+      width: 93px;
+      height: 93px;
+      line-height: 93px;
+      margin: 2px;
+      font-size: (93/90 * 0.7) * 90px;
+      box-shadow: 4px 4px 6px 1px rgba(0, 0, 0, 0.2);
+    }
+  }
+
+}
+
+.controls {
+  display: flex;
+  justify-content: center;
+  transition: all 0.2s;
+
+  .btn {
+    box-shadow: 3px 3px 5px 1px rgba(0, 0, 0, 0.3);
+    height: 50px;
+    width: 150px;
+    margin: 5px;
+    border: none;
+    background-color: $elm-blue;
+    color: white;
+    font-size: 18px;
+    font-family: 'Share Tech Mono', monospace;
+
+    @include max-screen(600px) {
+      box-shadow: 2px 2px 3px 1px rgba(0, 0, 0, 0.3);
+      height: 25px;
+      width: 80px;
+      margin: 2px;
+      border: none;
+      background-color: $elm-blue;
+      color: white;
+      font-size: 9px;
+    }
+  }
+}
+
+.result {
+  font-family: sans-serif;
+  font-size: 30px;
+  color: $elm-blue;
+  text-align: center;
+
+  transition: all 0.2s;
+
+  @include max-screen(600px) {
+    font-size: 15px;
+  }
+}
+
+.footer {
+  position:fixed;
+  left:0;
+  bottom:0;
+  height:30px;
+  width:100%;
+  font-family: 'Share Tech Mono', monospace;
+  color : $elm-blue;
+  text-align: center;
+
+  &--fcc {
+    text-decoration: none;
+    color: $elm-green;
+  }
+}
